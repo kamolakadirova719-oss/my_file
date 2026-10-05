@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sanoq Sistemalarini O'zgartirish - Dars Vositasi</title>
+
+<!--
+  =========================================================
+  BU YERDA SUPABASE KUTUBXONASI ULANMOQDA.
+  Bu "script" tegi orqali biz Supabase bilan ishlash uchun
+  tayyor kodlar to'plamini (kutubxona) sahifamizga yuklaymiz.
+  Internetdan yuklanadi, shuning uchun internet aloqasi kerak.
+  =========================================================
+-->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+  /* ============================================================
+     DIZAYN (CSS) QISMI
+     Bu yerda sahifaning rangi, shrift o'lchami, joylashuvi
+     kabi "tashqi ko'rinish" sozlanadi.
+     Talab bo'yicha: shrift katta, dizayn sodda bo'lishi kerak,
+     chunki foydalanuvchilar 6-7-8 sinf o'quvchilari.
+     ============================================================ */
+
+  * {
+    box-sizing: border-box; /* o'lchamlar hisoblanishini soddalashtiradi */
+  }
+
+  body {
+    font-family: Arial, sans-serif;
+    font-size: 20px;              /* katta harf - o'quvchilar uchun */
+    background-color: #eef5ff;
+    color: #1a1a1a;
+    margin: 0;
+    padding: 0;
+    line-height: 1.5;
+  }
+
+  header {
+    background-color: #1565c0;
+    color: white;
+    text-align: center;
+    padding: 24px 12px;
+  }
+
+  header h1 {
+    margin: 0 0 8px 0;
+    font-size: 34px;
+  }
+
+  header p {
+    margin: 0;
+    font-size: 20px;
+  }
+
+  /* Asosiy konteyner - ikki ustunli joylashuv.
+     Talabga ko'ra: EKRAN (natija) o'ng tomonda bo'lishi kerak.
+     Shuning uchun HTML'da ham panel-right ikkinchi bo'lib yoziladi,
+     va CSS "grid" yordamida ular yonma-yon joylashadi. */
+  main.container {
+    max-width: 1100px;
+    margin: 20px auto;
+    padding: 0 16px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;  /* ikki teng ustun */
+    gap: 20px;
+  }
+
+  /* Kichik ekranlarda (telefon) ustunlar bir-biri ostiga tushadi */
+  @media (max-width: 800px) {
+    main.container {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .panel {
+    background-color: #ffffff;
+    border: 3px solid #1565c0;
+    border-radius: 14px;
+    padding: 20px;
+  }
+
+  .panel h2 {
+    margin-top: 0;
+    font-size: 26px;
+    color: #1565c0;
+    text-align: center;
+    border-bottom: 2px dashed #90caf9;
+    padding-bottom: 10px;
+  }
+
+  label {
+    display: block;
+    font-weight: bold;
+    margin-top: 16px;
+    margin-bottom: 6px;
+    font-size: 19px;
+  }
+
+  input[type="text"], select {
+    width: 100%;
+    padding: 12px;
+    font-size: 22px;
+    border: 2px solid #90caf9;
+    border-radius: 8px;
+    background-color: #f7fbff;
+  }
+
+  .quick-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .quick-buttons button {
+    flex: 1 1 auto;
+    padding: 10px 6px;
+    font-size: 16px;
+    border: 2px solid #1565c0;
+    border-radius: 8px;
+    background-color: #e3f2fd;
+    color: #1565c0;
+    cursor: pointer;
+    font-weight: bold;
+  }
+
+  .quick-buttons button:hover {
+    background-color: #bbdefb;
+  }
+
+  .big-button {
+    width: 100%;
+    margin-top: 20px;
+    padding: 16px;
+    font-size: 24px;
+    font-weight: bold;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    color: white;
+  }
+
+  .btn-convert {
+    background-color: #2e7d32;
+  }
+  .btn-convert:hover {
+    background-color: #1b5e20;
+  }
+
+  .btn-save {
+    background-color: #ef6c00;
+  }
+  .btn-save:hover {
+    background-color: #e65100;
+  }
+
+  .btn-save:disabled, .btn-convert:disabled {
+    background-color: #bdbdbd;
+    cursor: not-allowed;
+  }
+
+  /* EKRAN (natija ko'rsatiladigan joy) - kalkulyator ekraniga o'xshash */
+  #screen {
+    background-color: #0d1b2a;
+    color: #7CFC00;
+    font-family: "Courier New", monospace;
+    font-size: 22px;
+    border-radius: 10px;
+    padding: 18px;
+    min-height: 140px;
+    white-space: pre-line;   /* yangi qatorlar to'g'ri ko'rinishi uchun */
+    border: 3px solid #1565c0;
+  }
+
+  .error-box {
+    margin-top: 14px;
+    padding: 12px;
+    background-color: #ffebee;
+    border: 2px solid #c62828;
+    color: #c62828;
+    border-radius: 8px;
+    font-weight: bold;
+    display: none; /* xatolik bo'lmasa ko'rinmaydi */
+  }
+
+  .history-list {
+    list-style: none;
+    padding: 0;
+    margin: 14px 0 0 0;
+    max-height: 260px;
+    overflow-y: auto;
+  }
+
+  .history-list li {
+    background-color: #f0f7ff;
+    border: 2px solid #90caf9;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+    font-size: 17px;
+  }
+
+  .history-time {
+    display: block;
+    font-size: 13px;
+    color: #607d8b;
+    margin-top: 4px;
+  }
+
+  footer {
+    max-width: 1100px;
+    margin: 30px auto;
+    padding: 20px;
+    background-color: #fff8e1;
+    border: 3px dashed #f9a825;
+    border-radius: 14px;
+  }
+
+  footer h2 {
+    color: #ef6c00;
+    font-size: 24px;
+  }
+
+  footer ol {
+    font-size: 17px;
+  }
+
+  footer li {
+    margin-bottom: 10px;
+  }
+
+  .loading-text {
+    color: #1565c0;
+    font-weight: bold;
+  }
+</style>
+</head>
+<body>
+
+<!--
+  ================================================================
+  SQL KODI - SUPABASE SQL EDITOR'GA NUSXALASH UCHUN
+  ================================================================
+  Quyidagi kodni Supabase loyihangizdagi "SQL Editor" bo'limiga
+  nusxalab, "RUN" tugmasini bosing. Bu jadvalni yaratadi va
+  xavfsizlik qoidalarini (RLS - Row Level Security) sozlaydi.
+
+  -- 1) Jadval yaratish: har bir o'tkazish (konversiya) natijasini
+  --    saqlash uchun "conversions" nomli jadval.
+  create table if not exists public.conversions (
+    id bigserial primary key,
+    created_at timestamptz not null default now(),
+    source_number text not null,
+    source_base integer not null,
+    target_base integer not null,
+    result text not null
+  );
+
+  -- 2) RLS (Row Level Security) ni yoqish.
+  --    Bu - har bir qatorga kim murojaat qila olishini
+  --    nazorat qilish imkonini beradi.
+  alter table public.conversions enable row level security;
+
+  -- 3) "anon" (ro'yxatdan o'tmagan, ya'ni oddiy saytga kirgan)
+  --    foydalanuvchiga yangi qator QO'SHISHGA (insert) ruxsat berish.
+  create policy "anon_insert_conversions"
+  on public.conversions
+  for insert
+  to anon
+  with check (true);
+
+  -- 4) "anon" foydalanuvchiga mavjud qatorlarni O'QISHGA (select)
+  --    ruxsat berish.
+  create policy "anon_select_conversions"
+  on public.conversions
+  for select
+  to anon
+  using (true);
+  ================================================================
+-->
+
+<header>
+  <h1>SANOQ SISTEMALARINI O'ZGARTIRISH</h1>
+  <p>Diada, Triada, Tetriada va boshqa sanoq sistemalari o'rtasida o'tish vositasi</p>
+</header>
+
+<main class="container">
+
+  <!-- ======================= CHAP PANEL: BOSHQARUV ======================= -->
+  <section class="panel" id="panel-left">
+    <h2>1. RAQAMNI KIRITING</h2>
+
+    <label for="input-number">Qaysi raqamni o'zgartirmoqchisiz?</label>
+    <input type="text" id="input-number" placeholder="Masalan: 101">
+
+    <label for="from-base">Bu raqam QAYSI sanoq sistemasida yozilgan?</label>
+    <select id="from-base">
+      <option value="2">Diada (2 lik sanoq sistema)</option>
+      <option value="3">Triada (3 lik sanoq sistema)</option>
+      <option value="4">Tetriada (4 lik sanoq sistema)</option>
+      <option value="5">5 lik sanoq sistema</option>
+      <option value="6">6 lik sanoq sistema</option>
+      <option value="7">7 lik sanoq sistema</option>
+      <option value="8">8 lik (Oktal) sanoq sistema</option>
+      <option value="9">9 lik sanoq sistema</option>
+      <option value="10" selected>10 lik (O'nlik) sanoq sistema</option>
+      <option value="16">16 lik (Geksadeksimal) sanoq sistema</option>
+    </select>
+    <div class="quick-buttons">
+      <button type="button" onclick="setBase('from-base', 2)">Diada</button>
+      <button type="button" onclick="setBase('from-base', 3)">Triada</button>
+      <button type="button" onclick="setBase('from-base', 4)">Tetriada</button>
+    </div>
+
+    <label for="to-base">Qaysi sanoq sistemasiga O'TKAZMOQCHISIZ?</label>
+    <select id="to-base">
+      <option value="2" selected>Diada (2 lik sanoq sistema)</option>
+      <option value="3">Triada (3 lik sanoq sistema)</option>
+      <option value="4">Tetriada (4 lik sanoq sistema)</option>
+      <option value="5">5 lik sanoq sistema</option>
+      <option value="6">6 lik sanoq sistema</option>
+      <option value="7">7 lik sanoq sistema</option>
+      <option value="8">8 lik (Oktal) sanoq sistema</option>
+      <option value="9">9 lik sanoq sistema</option>
+      <option value="10">10 lik (O'nlik) sanoq sistema</option>
+      <option value="16">16 lik (Geksadeksimal) sanoq sistema</option>
+    </select>
+    <div class="quick-buttons">
+      <button type="button" onclick="setBase('to-base', 2)">Diada</button>
+      <button type="button" onclick="setBase('to-base', 3)">Triada</button>
+      <button type="button" onclick="setBase('to-base', 4)">Tetriada</button>
+    </div>
+
+    <button type="button" class="big-button btn-convert" onclick="handleConvert()">
+      O'TKAZISH
+    </button>
+
+    <div class="error-box" id="convert-error"></div>
+  </section>
+
+  <!-- ======================= O'NG PANEL: EKRAN VA TARIX ======================= -->
+  <section class="panel" id="panel-right">
+    <h2>2. NATIJA (EKRAN)</h2>
+
+    <div id="screen">Natijani ko'rish uchun chap tomondagi
+"O'TKAZISH" tugmasini bosing.</div>
+
+    <button type="button" class="big-button btn-save" id="save-button" onclick="handleSave()" disabled>
+      BU NATIJANI SAQLASH
+    </button>
+
+    <div class="error-box" id="save-error"></div>
+
+    <h2 style="margin-top:26px;">OLDINGI NATIJALAR</h2>
+    <p id="loading-history" class="loading-text" style="display:none;">Yuklanmoqda...</p>
+    <ul class="history-list" id="history-list"></ul>
+  </section>
+
+</main>
+
+<footer>
+  <h2>YO'RIQNOMA (Supabase sozlash bo'yicha)</h2>
+  <ol>
+    <li><b>Loyiha ochish:</b> <a href="https://supabase.com" target="_blank">supabase.com</a> saytiga kiring,
+        ro'yxatdan o'ting va "New Project" tugmasi orqali yangi loyiha yarating.</li>
+    <li><b>Jadval yaratish:</b> Supabase paneli ichida chap menyudan "SQL Editor"ni oching,
+        shu fayl boshidagi izoh ichidagi SQL kodni nusxalab, "RUN" tugmasini bosing.
+        Bu "conversions" jadvalini va xavfsizlik qoidalarini yaratadi.</li>
+    <li><b>URL va ANON KEY olish:</b> Chap menyudan "Project Settings" &rarr; "API" bo'limiga o'ting.
+        U yerda "Project URL" va "anon public" nomli kalitni ko'rasiz. Ularni nusxalab,
+        shu faylning <code>SUPABASE_URL</code> va <code>SUPABASE_ANON_KEY</code> qatorlariga joylang.
+        <b>service_role</b> kalitini hech qachon ishlatmang - u maxfiy!</li>
+    <li><b>"row-level security policy" xatosi chiqsa:</b> Bu xato odatda SQL kod
+        to'liq ishlamaganda yoki policy (siyosat) yaratilmaganda chiqadi. Qaytadan
+        "SQL Editor"ga kirib, yuqoridagi SQL kodni to'liq nusxalab qayta ishga tushiring.
+        "Table Editor" bo'limida "conversions" jadvali borligini va "Policies"
+        bo'limida ikkita (insert va select) siyosat borligini tekshiring.</li>
+  </ol>
+</footer>
+
+<script>
+  /* ============================================================
+     JAVASCRIPT QISMI - DASTURNING "MIYASI"
+     Bu yerda butun mantiq (hisoblash, Supabase bilan ishlash)
+     yoziladi. Har bir qism alohida izohlangan.
+     ============================================================ */
+
+  // -----------------------------------------------------------
+  // 1-QADAM: SUPABASE ULANISHINI SOZLASH
+  // Quyidagi ikki qatorga o'zingizning Supabase loyihangizdan
+  // olingan qiymatlarni joylashtiring.
+  // -----------------------------------------------------------
+  const SUPABASE_URL = "https://SIZNING-PROJECT-ID.supabase.co"; // <-- bu yerga o'z qiymatlaringizni qo'ying
+  const SUPABASE_ANON_KEY = "SIZNING-ANON-PUBLIC-KEY";            // <-- bu yerga o'z qiymatlaringizni qo'ying
+
+  // Supabase bilan "muloqot qiluvchi" mijoz (client) obyektini yaratamiz.
+  // Bu obyekt orqali biz keyinchalik ma'lumot yuborib/o'qib olamiz.
+  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  // Oxirgi hisoblangan natijani vaqtincha saqlab turish uchun o'zgaruvchi.
+  // Bu "Saqlash" tugmasi bosilganda kerak bo'ladi.
+  let lastResult = null;
+
+  // -----------------------------------------------------------
+  // 2-QADAM: YORDAMCHI FUNKSIYALAR
+  // -----------------------------------------------------------
+
+  // Tezkor tugmalar (Diada/Triada/Tetriada) bosilganda
+  // tanlangan <select> ning qiymatini avtomatik o'zgartiradi.
+  function setBase(selectId, value) {
+    document.getElementById(selectId).value = value;
+  }
+
+  // Xatolik xabarini ekranga chiqarish uchun yordamchi funksiya.
+  function showError(boxId, message) {
+    const box = document.getElementById(boxId);
+    box.textContent = message;
+    box.style.display = message ? "block" : "none";
+  }
+
+  // Berilgan raqam (matn ko'rinishida) berilgan sanoq sistemasi uchun
+  // to'g'ri yozilganmi - shuni tekshiradi.
+  // Masalan: "2" base=2 (Diada) uchun NOTO'G'RI, chunki Diadada
+  // faqat 0 va 1 raqamlari bo'ladi.
+  function isValidNumberForBase(text, base) {
+    if (!text || text.trim() === "") {
+      return false; // bo'sh matn - noto'g'ri
+    }
+    const cleaned = text.trim().toUpperCase();
+    for (let i = 0; i < cleaned.length; i++) {
+      const ch = cleaned[i];
+      let digitValue;
+      if (ch >= "0" && ch <= "9") {
+        digitValue = ch.charCodeAt(0) - "0".charCodeAt(0);
+      } else if (ch >= "A" && ch <= "Z") {
+        digitValue = ch.charCodeAt(0) - "A".charCodeAt(0) + 10;
+      } else {
+        return false; // ruxsat etilmagan belgi (masalan probel, nuqta)
+      }
+      if (digitValue >= base) {
+        return false; // bu raqam shu sanoq sistemasida ishlatilmaydi
+      }
+    }
+    return true;
+  }
+
+  // Sanoq sistema raqamiga qarab nom qaytaradi (ekranda chiroyli ko'rinishi uchun).
+  function baseName(base) {
+    const names = {
+      2: "Diada (2 lik)",
+      3: "Triada (3 lik)",
+      4: "Tetriada (4 lik)",
+      8: "Oktal (8 lik)",
+      10: "O'nlik (10 lik)",
+      16: "Geksadeksimal (16 lik)"
+    };
+    return names[base] || (base + " lik sanoq sistema");
+  }
+
+  // -----------------------------------------------------------
+  // 3-QADAM: ASOSIY HISOBLASH FUNKSIYASI (O'TKAZISH)
+  // Bu tugma bosilganda ishlaydigan funksiya.
+  // -----------------------------------------------------------
+  function handleConvert() {
+    showError("convert-error", "");              // eski xatoni tozalaymiz
+    document.getElementById("save-button").disabled = true; // yangi hisoblanguncha saqlash o'chiq
+    lastResult = null;
+
+    const numberText = document.getElementById("input-number").value;
+    const fromBase = parseInt(document.getElementById("from-base").value, 10);
+    const toBase = parseInt(document.getElementById("to-base").value, 10);
+
+    // Tekshiruv 1: maydon bo'sh bo'lmasligi kerak
+    if (!numberText || numberText.trim() === "") {
+      showError("convert-error", "Iltimos, avval biror raqam kiriting.");
+      return;
+    }
+
+    // Tekshiruv 2: raqam tanlangan sanoq sistemasiga mos bo'lishi kerak
+    if (!isValidNumberForBase(numberText, fromBase)) {
+      showError(
+        "convert-error",
+        "Xatolik: \"" + numberText + "\" raqami " + baseName(fromBase) +
+        " sistemasiga mos kelmaydi. Iltimos, to'g'ri raqam kiriting."
+      );
+      return;
+    }
+
+    // -------- HISOBLASH --------
+    // 1) Avval kiritilgan raqamni O'NLIK (10 lik) tizimga aylantiramiz.
+    //    parseInt(matn, asos) - bu JavaScript'ning tayyor funksiyasi,
+    //    berilgan "asos" (radix) bo'yicha matnni songa aylantiradi.
+    const decimalValue = parseInt(numberText.trim(), fromBase);
+
+    // 2) Keyin o'nlikdan KERAKLI sanoq sistemasiga aylantiramiz.
+    //    toString(asos) - sonni berilgan asosdagi matnga aylantiradi.
+    const resultText = decimalValue.toString(toBase).toUpperCase();
+
+    // Natijani ekranga (EKRAN joyiga) chiqaramiz, shu bilan birga
+    // o'rganish uchun oraliq (o'nlik) qadamni ham ko'rsatamiz.
+    const screenText =
+      "Siz kiritdingiz: " + numberText.trim() + " (" + baseName(fromBase) + ")\n" +
+      "O'nlik tizimda:  " + decimalValue + "\n" +
+      "NATIJA: " + resultText + " (" + baseName(toBase) + ")";
+
+    document.getElementById("screen").textContent = screenText;
+
+    // Keyinchalik "Saqlash" tugmasi bosilganda ishlatish uchun
+    // natijani xotirada saqlab qo'yamiz.
+    lastResult = {
+      source_number: numberText.trim(),
+      source_base: fromBase,
+      target_base: toBase,
+      result: resultText
+    };
+
+    // Endi saqlash tugmasini yoqamiz, chunki natija bor.
+    document.getElementById("save-button").disabled = false;
+  }
+
+  // -----------------------------------------------------------
+  // 4-QADAM: NATIJANI SUPABASE'GA SAQLASH
+  // -----------------------------------------------------------
+  async function handleSave() {
+    showError("save-error", "");
+
+    // Agar hali hech narsa hisoblanmagan bo'lsa, saqlamaymiz.
+    if (!lastResult) {
+      showError("save-error", "Avval \"O'TKAZISH\" tugmasini bosib natija hosil qiling.");
+      return;
+    }
+
+    const saveButton = document.getElementById("save-button");
+    const originalText = saveButton.textContent;
+
+    // Tugmani vaqtincha o'chiramiz va matnini o'zgartiramiz,
+    // shunda foydalanuvchi ikki marta bosib yubormaydi.
+    saveButton.disabled = true;
+    saveButton.textContent = "Yuborilmoqda...";
+
+    try {
+      // Supabase'ga yangi qator qo'shish (insert) so'rovi.
+      // "await" - bu so'rov tugashini kutish degani.
+      const { error } = await supabaseClient
+        .from("conversions")
+        .insert([lastResult]);
+
+      if (error) {
+        // Agar Supabase xatolik qaytarsa, shu yerda ko'rsatamiz.
+        throw error;
+      }
+
+      // Muvaffaqiyatli saqlangandan so'ng, ro'yxatni yangilaymiz.
+      await loadHistory();
+
+    } catch (err) {
+      // Har qanday xatolik (internet yo'q, noto'g'ri kalit,
+      // RLS siyosati yo'q va h.k.) shu yerda ushlanadi.
+      showError("save-error", "Xatolik yuz berdi: " + err.message);
+    } finally {
+      // Natijadan qat'i nazar (muvaffaqiyatli yoki xato),
+      // tugmani albatta qayta yoqamiz - dastur "qotib" qolmasligi uchun.
+      saveButton.disabled = false;
+      saveButton.textContent = originalText;
+    }
+  }
+
+  // -----------------------------------------------------------
+  // 5-QADAM: SAQLANGAN NATIJALAR RO'YXATINI O'QISH VA KO'RSATISH
+  // -----------------------------------------------------------
+  async function loadHistory() {
+    const listElement = document.getElementById("history-list");
+    const loadingElement = document.getElementById("loading-history");
+
+    loadingElement.style.display = "block";
+    listElement.innerHTML = "";
+
+    try {
+      // Supabase'dan ma'lumot o'qish (select) so'rovi.
+      // "order" - eng yangi yozuvlar yuqorida chiqishi uchun.
+      // "limit" - faqat oxirgi 20 ta yozuvni olamiz.
+      const { data, error } = await supabaseClient
+        .from("conversions")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(20);
+
+      if (error) {
+        throw error;
+      }
+
+      if (!data || data.length === 0) {
+        listElement.innerHTML = "<li>Hozircha yozuv yo'q</li>";
+        return;
+      }
+
+      // Har bir yozuv uchun <li> elementi yaratib, ro'yxatga qo'shamiz.
+      data.forEach(function (row) {
+        const li = document.createElement("li");
+        const timeText = new Date(row.created_at).toLocaleString("uz-UZ");
+
+        li.innerHTML =
+          row.source_number + " (" + baseName(row.source_base) + ")" +
+          " &rarr; " +
+          row.result + " (" + baseName(row.target_base) + ")" +
+          "<span class='history-time'>" + timeText + "</span>";
+
+        listElement.appendChild(li);
+      });
+
+    } catch (err) {
+      listElement.innerHTML = "";
+      showError("save-error", "Ro'yxatni yuklashda xatolik: " + err.message);
+    } finally {
+      loadingElement.style.display = "none";
+    }
+  }
+
+  // -----------------------------------------------------------
+  // 6-QADAM: SAHIFA OCHILGANDA AVTOMATIK ISHGA TUSHADIGAN QISM
+  // -----------------------------------------------------------
+  // Sahifa to'liq yuklangandan so'ng, mavjud yozuvlarni darhol
+  // ko'rsatish uchun loadHistory() funksiyasini chaqiramiz.
+  window.addEventListener("DOMContentLoaded", function () {
+    loadHistory();
+  });
+</script>
+
+</body>
+</html>
